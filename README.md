@@ -104,29 +104,29 @@ angular.module('my-module').controller('MyCtrl', function($scope, scopeExtend, m
 
         methods: {
             myFunction: function() {
-                return myService.doStuff(this.myVariable);
+                myService.doStuff(this.myVariable);
             },
             myOtherFunction: function() {
-                return console.log('reticulating spleens');
+                console.log('reticulating spleens');
             }
         },
 
         watch: {
             'myVariable': function(newValue, oldValue) {
-                return this.myFunction();
+                this.myFunction();
             }
         },
 
         listen: {
             'SOME_EVENT': function(event) {
                 this.myOtherFunction();
-                return this.myVariable++;
+                this.myVariable++;
             }
         },
 
         initialize: function() {
             this.myFunction();
-            return console.log('Ahh, much better!ere.');
+            console.log('Ahh, much better!');
         }
         
     });
