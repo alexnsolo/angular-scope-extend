@@ -6,6 +6,8 @@ An Angular service for organizing controller code.
 
 or download at [https://github.com/civilframe/angular-scope-extend/releases](https://github.com/civilframe/angular-scope-extend/releases)
 
+2 KB minified
+
 ## Benefits
 
 Organize your angular controller code in object notation, using 'this' to refer to $scope. Works best with CoffeeScript.
