@@ -12,6 +12,7 @@ Organize your angular controller code in object notation, using 'this' to refer 
 
 ### Before
 
+CoffeeScript:
 ```coffeescript
 angular.module('my-module').controller 'MyCtrl', ($scope, myService) ->
     
@@ -34,9 +35,38 @@ angular.module('my-module').controller 'MyCtrl', ($scope, myService) ->
     $scope.myFunction()
     console.log('Phew. Much $scope everywhere.')
 ```
+JavaScript:
+```javascript
+angular.module('my-module').controller('MyCtrl', function($scope, myService) {
+
+    $scope.myVariable = 5;
+
+    $scope.myFunction = function() {
+        return myService.doStuff($scope.myVariable);
+    };
+
+    $scope.myOtherFunction = function() {
+        return console.log('reticulating spleens');
+    };
+
+    $scope.$watch('myVariable', function(newValue, oldValue) {
+        return $scope.myFunction();
+    });
+
+    $scope.$on('SOME_EVENT', function(event) {
+        $scope.myOtherFunction();
+        return $scope.myVariable++;
+    });
+
+    // Initialization
+    $scope.myFunction();
+    console.log('Phew. Much $scope everywhere.');
+});
+```
 
 ### After
 
+CoffeeScript:
 ```coffeescript
 angular.module('my-module').controller 'MyCtrl', ($scope, scopeExtend, myService) -> scopeExtend $scope,
     
@@ -55,11 +85,50 @@ angular.module('my-module').controller 'MyCtrl', ($scope, scopeExtend, myService
             @myFunction()
         
     listen:
-        'SOME_EVENT', (event) ->
+        'SOME_EVENT': (event) ->
             @myOtherFunction()
             @myVariable++
         
     initialize: ->
         @myFunction()
         console.log('Ahh, much better!')
+```
+JavaScript:
+```javascript
+angular.module('my-module').controller('MyCtrl', function($scope, scopeExtend, myService) {
+    scopeExtend($scope, {
+
+        variables: {
+            myVariable: 5
+        },
+
+        methods: {
+            myFunction: function() {
+                return myService.doStuff(this.myVariable);
+            },
+            myOtherFunction: function() {
+                return console.log('reticulating spleens');
+            }
+        },
+
+        watch: {
+            'myVariable': function(newValue, oldValue) {
+                return this.myFunction();
+            }
+        },
+
+        listen: {
+            'SOME_EVENT': function(event) {
+                this.myOtherFunction();
+                return this.myVariable++;
+            }
+        },
+
+        initialize: function() {
+            this.myFunction();
+            return console.log('Ahh, much better!ere.');
+        }
+        
+    });
+});
 ```
