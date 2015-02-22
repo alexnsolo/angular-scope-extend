@@ -1,0 +1,3 @@
+syntax-highlighting:
+  enabled : true
+  css: syntax.css
