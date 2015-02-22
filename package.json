@@ -1,6 +1,6 @@
 {
   "name": "angular-scope-extend",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "An Angular service for organizing controller code.",
   "main": "angular-scope-extend.js",
   "scripts": {
