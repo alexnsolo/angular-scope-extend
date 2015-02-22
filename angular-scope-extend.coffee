@@ -1,6 +1,9 @@
-angular.module('angular-scope-extend', [])
+# angularScopeExtend / Alex Solo 2015 / License: MIT
 
-angular.module('angular-scope-extend').factory 'scopeExtend', ->
+'format global'
+'deps angular'
+
+do ->
 
     # Internal functions
     _isObject = (obj) ->
@@ -16,110 +19,128 @@ angular.module('angular-scope-extend').factory 'scopeExtend', ->
         console.warn 'scopeExtend - ' + msg
 
 
-    # The scopeExtend factory proper, which is a function
-    return (scope, members) ->
+    # The module
+    angularScopeExtend = (angular) ->
 
-        # Perform sanity checks
-        unless _isObject(scope)
-            _warning 'Scope parameter is not an object, exiting early.'
-            return
+        module = angular.module('angular-scope-extend', [])
 
-        unless _isObject(members)
-            _warning 'Members parameter is not an object, exiting early.'
-            return
+        module.factory 'scopeExtend', ->
+
+            # The scopeExtend factory proper, which is a function
+            return (scope, members) ->
+
+                # Perform sanity checks
+                unless _isObject(scope)
+                    _warning 'Scope parameter is not an object, exiting early.'
+                    return
+
+                unless _isObject(members)
+                    _warning 'Members parameter is not an object, exiting early.'
+                    return
 
 
-        # Setup internal members
-        listens = []
-        watches = []
+                # Setup internal members
+                listens = []
+                watches = []
 
-        _setupWatch = (name, params) ->
-            unless _isFunction(params) or _isObject(params)
-                _warning 'Watch parameter must be a function or object, skipping.'
-                return
-
-            if _isFunction(params)
-                expression = name
-                callback = params
-                depth = 'shallow'
-
-            if _isObject(params)
-                if params.expressionGroup
-                    unless _isArray(params.expressionGroup)
-                        _warning 'Watch parameter expressionGroup must be an array, skipping.'
+                _setupWatch = (name, params) ->
+                    unless _isFunction(params) or _isObject(params)
+                        _warning 'Watch parameter must be a function or object, skipping.'
                         return
 
-                    expression = params.expressionGroup
-                    depth = 'group'
+                    if _isFunction(params)
+                        expression = name
+                        callback = params
+                        depth = 'shallow'
 
-                else
-                    expression = params.expression || name
-                    depth = params.depth || 'shallow'
+                    if _isObject(params)
+                        if params.expressionGroup
+                            unless _isArray(params.expressionGroup)
+                                _warning 'Watch parameter expressionGroup must be an array, skipping.'
+                                return
+
+                            expression = params.expressionGroup
+                            depth = 'group'
+
+                        else
+                            expression = params.expression || name
+                            depth = params.depth || 'shallow'
+                        
+                        callback = params.callback
+
+                    deregister = switch depth
+                        when 'shallow' then scope.$watch(expression, -> callback.apply(scope, arguments))
+                        when 'deep' then scope.$watch(expression, (-> callback.apply(scope, arguments)), true)
+                        when 'collection' then scope.$watchCollection(expression, -> callback.apply(scope, arguments))
+                        when 'group' then scope.$watchGroup(expression, -> callback.apply(scope, arguments))
+
+                    watches.push
+                        key: name
+                        callback: deregister
+
+                _setupListen = (name, callback) ->
+                    deregister = scope.$on(name, -> callback.apply(scope, arguments))
+                    listens.push
+                        key: name
+                        callback: deregister
+
+
+                # Extend the scope with members
+                if members.variables
+                    for own variableName, variableValue of members.variables
+                        scope[variableName] = variableValue 
                 
-                callback = params.callback
+                # Extend the scope with methods
+                if members.methods
+                    for own methodName, methodBody of members.methods
+                        scope[methodName] = methodBody 
 
-            deregister = switch depth
-                when 'shallow' then scope.$watch(expression, -> callback.apply(scope, arguments))
-                when 'deep' then scope.$watch(expression, (-> callback.apply(scope, arguments)), true)
-                when 'collection' then scope.$watchCollection(expression, -> callback.apply(scope, arguments))
-                when 'group' then scope.$watchGroup(expression, -> callback.apply(scope, arguments))
+                # Register watch listeners
+                if members.watch
+                    for own watchName, watchParams of members.watch
+                        _setupWatch(watchName, watchParams)
 
-            watches.push
-                key: name
-                callback: deregister
-
-        _setupListen = (name, callback) ->
-            deregister = scope.$on(name, -> callback.apply(scope, arguments))
-            listens.push
-                key: name
-                callback: deregister
+                # Register event listeners
+                if members.listen
+                    for own listenName, listenCallback of members.listen
+                        _setupListen(listenName, listenCallback)
 
 
-        # Extend the scope with members
-        if members.variables
-            for own variableName, variableValue of members.variables
-                scope[variableName] = variableValue 
+                # Extend the scope with _forgetWatch, for deregistering watches
+                scope._forgetWatch = (watchName) ->
+                    watchesToRemove = []
+                    for watch in watches
+                        continue unless watch.key is watchName
+                        watch.callback()
+                        watchesToRemove.push(watch)
+                    for remove in watchesToRemove
+                        index = watches.indexOf(remove)
+                        watches.splice(index, 1)
+
+                # Extend the scope with _forgetListen, for deregistering listeners
+                scope._forgetListen = (listenName) ->
+                    listensToRemove = []
+                    for listen in listens
+                        continue unless listen.key is listenName
+                        listen.callback()
+                        listensToRemove.push(listen)
+                    for remove in listensToRemove
+                        index = listens.indexOf(remove)
+                        listens.splice(index, 1)
+
+
+                # Call the initialize methods
+                if members.initialize
+                    members.initialize.apply(scope)
+
+
+        return module
+
+
+    # Export module in differnet formats
+    if typeof define is 'function' and define.amd
+        define('angular-scope-extend', ['angular'], angularScopeExtend)
+    else
+        angularScopeExtend(window.angular)
+
         
-        # Extend the scope with methods
-        if members.methods
-            for own methodName, methodBody of members.methods
-                scope[methodName] = methodBody 
-
-        # Register watch listeners
-        if members.watch
-            for own watchName, watchParams of members.watch
-                _setupWatch(watchName, watchParams)
-
-        # Register event listeners
-        if members.listen
-            for own listenName, listenCallback of members.listen
-                _setupListen(listenName, listenCallback)
-
-
-        # Extend the scope with _forgetWatch, for deregistering watches
-        scope._forgetWatch = (watchName) ->
-            watchesToRemove = []
-            for watch in watches
-                continue unless watch.key is watchName
-                watch.callback()
-                watchesToRemove.push(watch)
-            for remove in watchesToRemove
-                index = watches.indexOf(remove)
-                watches.splice(index, 1)
-
-        # Extend the scope with _forgetListen, for deregistering listeners
-        scope._forgetListen = (listenName) ->
-            listensToRemove = []
-            for listen in listens
-                continue unless listen.key is listenName
-                listen.callback()
-                listensToRemove.push(listen)
-            for remove in listensToRemove
-                index = listens.indexOf(remove)
-                listens.splice(index, 1)
-
-
-        # Call the initialize methods
-        if members.initialize
-            members.initialize.apply(scope)
-
