@@ -132,3 +132,63 @@ angular.module('my-module').controller('MyCtrl', function($scope, scopeExtend, m
     });
 });
 ```
+
+## Advanced Usage
+```coffeescript
+angular.module('example-module').controller 'ExampleCtrl', ($scope, scopeExtend) -> scopeExtend $scope,
+    variables:
+        'test': 1
+        'test2': {value: 2}
+        'test3': [1,2,3]
+
+    methods:
+        'readTest': -> 
+            console.log 'test is', @test
+
+        'readTest2': -> 
+            console.log 'test2 is', @test2
+
+    listen:
+        # The name of the event corresponds to the key, in this case 'SOME_EVENT'
+        'SOME_EVENT': (event, coolArg) ->
+            console.log 'SOME_EVENT received', coolArg
+
+        'SOME_OTHER_EVENT': (event) -> 
+            console.log 'SOME_OTHER_EVENT received'
+
+    watch:
+        # For simple watches, the watch expression corresponds to the key
+        'test': (newValue) -> 
+            console.log 'test changed to', newValue
+
+        # For more complex watches, the key is arbitrary
+        'testDeep': 
+            expression: 'test2' # and the expression is specified here
+            depth: 'deep' # as well as the watch depth
+            callback: (newValue) -> # and lastly the callback
+                console.log 'test2 deeply changed to', newValue
+
+        # You can also watch collections by specifying depth as 'collection'
+        'testCollection': 
+            expression: 'test3'
+            depth: 'collection'
+            callback: (newValue) ->
+                console.log 'test3 collection changed to', newValue
+
+        # You can also watch groups by specifying an array of expressions for expressionGroup
+        'testGroup':
+            expressionGroup: ['test1', 'test2']
+            callback: (newValues) ->
+                console.log 'test1 and test2 changed to', newValues
+
+    initialize: ->
+        @test1 = 2
+        @test2.value = 5
+        @test3.push(4)
+
+        @$emit('SOME_EVENT')
+        @_forgetListen('SOME_EVENT') # The built-in _forgetListen function removes the listener for the specified key
+        @$emit('SOME_EVENT') # so this shouldn't be received
+
+        @_forgetWatch('testCollection') # You can also forget watches by specifying the key
+```
